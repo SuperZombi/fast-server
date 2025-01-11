@@ -2,6 +2,8 @@ import sys, os
 import socket
 import json
 import tkinter as tk
+import io
+import urllib
 
 
 def resource_path(relative_path):
@@ -30,6 +32,54 @@ def get_host(host=""):
 	if host == "localhost" or not host:
 		return "127.0.0.1"
 	return host
+
+def get_files_and_folders(path):
+	files = []
+	folders = []
+	for item in os.listdir(path):
+		full_path = os.path.join(path, item)
+		if os.path.isdir(full_path):
+			folders.append(item)
+		elif os.path.isfile(full_path):
+			files.append(item)
+	return files, folders
+
+def list_directory(path, urlpath):
+	files, folders = get_files_and_folders(path)
+
+	folders_html = ""
+	for folder in folders:
+		folders_html += f"<li>📁<a href='{folder}/'>{folder}/</a></li>"
+
+	files_html = ""
+	for file in files:
+		folders_html += f"<li>🗎<a href='{file}'>{file}</a></li>"
+
+	nothing = "<p>¯\\_(ツ)_/¯</p>"
+	html = f"""
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>Directory listing</title>
+		<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+		<meta name='viewport' content='width=device-width'>
+	</head>
+	<body>
+		<h2>{urllib.parse.unquote(urlpath)}</h2>
+		<hr>
+		<ul>
+			{"<li><a href='../'>↩</a></li>" if urlpath != "/" else ""}
+			{nothing if (not folders_html and not files_html) else ""}
+			{folders_html}
+			{files_html}
+		</ul>
+	</body>
+	</html>
+	"""
+	f = io.BytesIO()
+	f.write(bytes(html, 'utf-8'))
+	f.seek(0)
+	return f
 
 class EntryWithPlaceholder(tk.Entry):
 	def __init__(self, master, placeholder, color='grey'):

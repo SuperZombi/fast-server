@@ -96,7 +96,7 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
 			if SETTINGS.get("root") == "index":
 				self.path = URL.path + 'index.html'
 			else:
-				return self.copyfile(self.list_directory(path), self.wfile)
+				return self.copyfile(list_directory(path, URL.path), self.wfile)
 		else:
 			if not os.path.exists(path):
 				self.path = URL.path + '.html'
