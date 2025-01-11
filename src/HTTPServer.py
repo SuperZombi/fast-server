@@ -2,54 +2,80 @@ from infi.systray import SysTrayIcon
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from threading import Thread
 import webbrowser as wbr
-import socket
 import sys, os
 import tkinter as tk
+from utils import *
 
 
-def resource_path(relative_path):
-	base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-	return os.path.join(base_path, relative_path)
-
-def get_host(host=""):
-	if host == "0.0.0.0":
-		return socket.gethostbyname(socket.gethostname())
-	if host == "localhost" or not host:
-		return "127.0.0.1"
-	return host
-
+SETTINGS = {
+	"host": "localhost",
+	"port": 8000,
+	"root": "index"
+}
+SETTINGS.update(load_settings())
 
 def start_gui(_):
 	def save_data():
 		new_host = host_entry.get()
 		new_port = int(port_entry.get())
+		root_path = directory_behavior.get()
 		root.destroy()
+		SETTINGS.update({"host": new_host, "port": new_port, "root": root_path})
+		save_settings(SETTINGS)
 		print("Restarting server...")
-		SERVER.shutdown()
-		Thread(target=start_server, args=(new_host, new_port), daemon=True).start()
+		Thread(target=lambda:SERVER.shutdown(), daemon=True).start()
+		Thread(target=start_server, daemon=True).start()
 
-	current_host, current_port = SERVER.get_address()
+	def inset_url(host, port):
+		host_entry.delete(0, 'end')
+		port_entry.delete(0, 'end')
+		host_entry.insert(0, host)
+		port_entry.insert(0, port)
 
 	root = tk.Tk()
 	root.title("Settings")
 	root.iconbitmap(icons["main"])
 
-	root.grid_columnconfigure(0, weight=1)
-	root.grid_columnconfigure(1, weight=1)
+	###
+	frame1 = tk.Frame(root)
+	frame1.pack(pady=(10,5))
 
-	tk.Label(root, text="Host:").grid(row=0, column=0, padx=10, pady=10)
-	host_entry = tk.Entry(root)
-	host_entry.grid(row=0, column=1, padx=10, pady=10)
-	host_entry.insert(0, current_host)
+	local_button = tk.Button(frame1, text="Local", command=lambda: inset_url("localhost", 8000))
+	local_button.pack(padx=5, side=tk.LEFT)
 
-	tk.Label(root, text="Port:").grid(row=1, column=0, padx=10, pady=10)
-	port_entry = tk.Entry(root)
-	port_entry.grid(row=1, column=1, padx=10, pady=10)
-	port_entry.insert(0, current_port)
+	public_button = tk.Button(frame1, text="Global", command=lambda: inset_url("0.0.0.0", 80))
+	public_button.pack(padx=5, side=tk.LEFT)
 
-	save_button = tk.Button(root, text="Save", command=save_data)
-	save_button.grid(row=2, column=0, columnspan=2, pady=10)
+	###
+	grid2 = tk.Frame(root)
+	grid2.pack()
 
+	tk.Label(grid2, text="Host:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+	host_entry = EntryWithPlaceholder(grid2, placeholder="localhost")
+	host_entry.grid(row=0, column=1, padx=10, pady=5)
+	host_entry.insert(0, SETTINGS.get("host"))
+
+	tk.Label(grid2, text="Port:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+	port_entry = tk.Entry(grid2)
+	port_entry.grid(row=1, column=1, padx=10, pady=5)
+	port_entry.insert(0, SETTINGS.get("port"))
+
+	###
+	directory_behavior = tk.StringVar(value=SETTINGS.get("root"))
+	tk.Label(grid2, text="Root:").grid(row=2, column=0, padx=10, pady=5, sticky="en")
+
+	grid3 = tk.Frame(grid2)
+	grid3.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
+	show_index_rb = tk.Radiobutton(grid3, text="index.html", variable=directory_behavior, value="index")
+	show_index_rb.pack(anchor="w")
+
+	show_directory_rb = tk.Radiobutton(grid3, text="Directory", variable=directory_behavior, value="directory")
+	show_directory_rb.pack(anchor="w")
+
+	###
+	save_button = tk.Button(root, text="   Save   ", command=save_data)
+	save_button.pack(pady=5)
 	root.mainloop()
 
 
@@ -63,8 +89,9 @@ class MyServer(HTTPServer):
 
 class MyRequestHandler(SimpleHTTPRequestHandler):
 	def do_GET(self):
-		if self.path.endswith("/"):
-			self.path = self.path + 'index.html'
+		if SETTINGS.get("root") == "index":
+			if self.path.endswith("/"):
+				self.path = self.path + 'index.html'
 
 		f = self.send_head()
 		if f:
@@ -74,9 +101,9 @@ class MyRequestHandler(SimpleHTTPRequestHandler):
 				f.close()
 
 SERVER = None
-def start_server(host, port):
+def start_server():
 	global SERVER
-	SERVER = MyServer((get_host(host), port), MyRequestHandler)
+	SERVER = MyServer((get_host(SETTINGS.get("host")), SETTINGS.get("port")), MyRequestHandler)
 	print(f"Serving on {SERVER.get_host_url()}")
 	try:
 		SERVER.serve_forever()
@@ -91,4 +118,4 @@ menu_options = (
 systray = SysTrayIcon(icons["main"], "HTTP Server", menu_options, on_quit=lambda _: os._exit(0))
 systray.start()
 
-Thread(target=start_server, args=("", 8000), daemon=True).start()
+Thread(target=start_server, daemon=True).start()
