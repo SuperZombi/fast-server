@@ -4,6 +4,7 @@ from threading import Thread
 import webbrowser as wbr
 import sys, os
 import tkinter as tk
+from urllib.parse import urlparse
 from utils import *
 
 
@@ -89,9 +90,16 @@ class MyServer(HTTPServer):
 
 class MyRequestHandler(SimpleHTTPRequestHandler):
 	def do_GET(self):
-		if SETTINGS.get("root") == "index":
-			if self.path.endswith("/"):
-				self.path = self.path + 'index.html'
+		URL = urlparse(self.path)
+		path = self.translate_path(URL.path)
+		if URL.path.endswith("/"):
+			if SETTINGS.get("root") == "index":
+				self.path = URL.path + 'index.html'
+			else:
+				return self.copyfile(self.list_directory(path), self.wfile)
+		else:
+			if not os.path.exists(path):
+				self.path = URL.path + '.html'
 
 		f = self.send_head()
 		if f:

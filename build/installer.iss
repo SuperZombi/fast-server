@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Fast Server"
-#define MyAppVersion "1.0"
+#define MyAppVersion "2.0"
 #define MyAppPublisher "Super Zombi"
 #define MyAppURL "https://github.com/SuperZombi/fast-server"
 #define MyAppExeName "HTTPServer.exe"
@@ -56,3 +56,5 @@ Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\RunHTTPServer\co
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 
+[UninstallDelete]
+Type: filesandordirs; Name: "{userappdata}\Fast Server"
