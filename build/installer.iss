@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Fast Server"
-#define MyAppVersion "2.0"
+#define MyAppVersion "2.1"
 #define MyAppPublisher "Super Zombi"
 #define MyAppURL "https://github.com/SuperZombi/fast-server"
 #define MyAppExeName "HTTPServer.exe"
